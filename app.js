@@ -1,70 +1,65 @@
 import express from 'express';
-import tasks from './mock.js';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import { DATABASE_URL } from './constants.js';
+import Task from './task.js';
+
 const PORT = 3000;
 const app = express();
+app.use(cors());
 app.use(express.json());
-app.get('/', (req, res) => {
-  res.send('Hello Express');
-});
-app.post('/tasks', (req, res) => {
-  const data = req.body;
-  console.log(data);
-  const ids = tasks.map((task) => task.id);
-  const nextId = Math.max(...ids) + 1;
-  const now = new Date();
-  const newTask = {
-    ...data,
-    id: nextId,
-    createdAt: now,
-    updatedAt: now,
-    isComplete: false,
-  };
-  tasks.push(newTask);
+
+await mongoose.connect(DATABASE_URL);
+app.post('/tasks', async (req, res) => {
+  const newTask = await Task.create(req.body);
+  res.send(newTask);
 
   res.status(201).send(newTask);
 });
-app.get('/tasks', (req, res) => {
-  const sort = req.query.sort;
-  const count = Number(req.query.count);
+app.get('/tasks', async (req, res) => {
+  /** 쿼리 목록
+   *  - count: 아이템 개수
+   *  - sort: 정렬
+   */
+  const count = Number(req.query.count) || 0;
 
-  const compareFn = sort === 'oldest' ? (a, b) => a.createdAt - b.createdAt : (a, b) => b.createdAt - a.createdAt;
-  let newTasks = tasks.sort(compareFn);
-  if (count) {
-    newTasks = newTasks.slice(0, count);
+  if (count === 0) {
+    return res.json([]);
   }
+
+  const sortOption = req.query.sort === 'oldest' ? ['createdAt', 'asc'] : ['createdAt', 'desc'];
+  const tasks = await Task.find().limit(count).sort([sortOption]);
   res.send(tasks);
 });
-app.get('/tasks/:id', (req, res) => {
-  const id = Number(req.params.id);
-  const task = tasks.find((task) => task.id === id);
+app.get('/tasks/:id', async (req, res) => {
+  const task = await Task.findById(req.params.id);
   if (task) {
     res.send(task);
   } else {
-    res.status(404).send({ message: 'Cannot find given id.' });
+    res.status(404).send({ message: 'Cannot find given id' });
   }
 });
 
-app.patch('/tasks/:id', (req, res) => {
-  const id = Number(req.params.id);
-  const task = tasks.find((task) => task.id === id);
+app.patch('/tasks/:id', async (req, res) => {
+  const task = await Task.findById(req.params.id);
   if (task) {
-    Object.keys(req.body).forEach((key) => {
-      task[key] = req.body[key];
+    const { body } = req;
+    Object.keys(body).forEach((key) => {
+      task[key] = body[key];
     });
-    task.updatedAt = new Date();
+    await task.save();
     res.send(task);
   } else {
-    res.status(404).send({ message: 'Caonnot find given id' });
+    res.status(404).send({ message: 'cannot find given id' });
   }
 });
-app.delete('/tasks/:id', (req, res) => {
-  const id = Number(req.params.id);
-  const taskIdx = tasks.findIndex((task) => task.id === id);
-  if (taskIdx !== -1) {
-    const [deletedTask] = tasks.splice(taskIdx, 1);
-    res.send(deletedTask);
+
+app.delete('/tasks/:id', async (req, res) => {
+  const task = await Task.findByIdAndDelete(req.params.id);
+  if (task) {
+    res.sendStatus(200);
   } else {
-    res.status(404).send({ message: 'Cannot find given id.' });
+    res.status(404).send({ message: 'cannot find given id' });
   }
 });
 

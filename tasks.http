@@ -1,4 +1,4 @@
-GET http://localhost:3000/tasks
+GET http://localhost:3000/tasks?sort=oldest&count=10
 
 ###
 POST http://localhost:3000/tasks
@@ -11,14 +11,14 @@ Content-Type:  application/json
 }
 
 ###
-GET http://localhost:3000/tasks/100
+GET http://localhost:3000/tasks/68f7061e44279b20fe2f9ef2
 
 ###
-PATCH http://localhost:3000/tasks/1
+PATCH http://localhost:3000/tasks/68f7061e44279b20fe2f9ef1
 Content-Type: application/json
 
 {
-    "title": "수정 데이터1"
+    "title": "수정 데이터2"
 }
 
 

@@ -1,4 +1,4 @@
-GET http://localhost:3000/tasks?sort=oldest&count=10
+GET https://dongseop-express.onrender.com/tasks?count=10
 
 ###
 POST http://localhost:3000/tasks
